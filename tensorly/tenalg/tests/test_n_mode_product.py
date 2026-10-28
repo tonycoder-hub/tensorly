@@ -1,6 +1,8 @@
 import itertools
 
 import numpy as np
+import pytest
+import tensorly as tl
 
 from ... import backend as T
 from ...testing import (
@@ -76,6 +78,24 @@ def test_mode_dot():
     U = T.tensor(np.random.random((3, 4)))
     res = unfold(mode_dot(X, U, 1), 1)
     assert_array_almost_equal(T.dot(U, unfold(X, 1)), res)
+
+
+@pytest.mark.parametrize("tenalg_backend", ["core", "einsum"])
+def test_mode_dot_negative_mode(tenalg_backend):
+    X = T.tensor(np.arange(24, dtype=float).reshape((3, 4, 2)))
+    with tl.tenalg.backend_context(tenalg_backend):
+        for mode in range(-T.ndim(X), 0):
+            pos_mode = mode + T.ndim(X)
+            mat = T.tensor(
+                np.arange(5 * X.shape[mode], dtype=float).reshape((5, X.shape[mode]))
+            )
+            vec = T.tensor(np.arange(X.shape[mode], dtype=float))
+            assert_array_almost_equal(
+                mode_dot(X, mat, mode), mode_dot(X, mat, pos_mode)
+            )
+            assert_array_almost_equal(
+                mode_dot(X, vec, mode), mode_dot(X, vec, pos_mode)
+            )
 
 
 def test_multi_mode_dot():
